@@ -1930,6 +1930,11 @@ elif page == "📖 Reading Assessment":
             f"{results['deletions_or_skipped_words']} / {results['insertions_or_repetitions']}"
         )
 
+        if meets_minimum(results["exact_word_match_percent"], READING_WORD_MATCH_TARGET_PERCENT):
+            st.info(f"Reading review gate met (word-match target at least {READING_WORD_MATCH_TARGET_PERCENT:.0f}%). Check the transcript; this is not a diagnosis.")
+        else:
+            st.warning(f"Reading match is below the demo target of {READING_WORD_MATCH_TARGET_PERCENT:.0f}%. Review the transcript/audio and repeat if needed.")
+
         st.markdown("#### Word-level comparison")
         alignment_rows = [
             {"Comparison": kind, "Passage word": ref_word, "Recognized word": said_word}
