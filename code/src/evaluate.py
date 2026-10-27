@@ -1,5 +1,10 @@
+from pathlib import Path
+import sys
 import torch
 from sklearn.metrics import classification_report, confusion_matrix
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from dataset import create_dataloaders
 from model import DyslexiaCNN
 
@@ -9,7 +14,7 @@ from model import DyslexiaCNN
 # ==========================================
 
 BATCH_SIZE = 32
-MODEL_PATH = "models/dyslexia_cnn.pth"
+MODEL_PATH = ROOT / "models" / "dyslexia_cnn.pth"
 
 device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
