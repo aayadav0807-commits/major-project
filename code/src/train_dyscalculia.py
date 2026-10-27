@@ -8,7 +8,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 
-DATA_FILE = "data/Dyscalculia/dyscalculia_prepared.csv"
+ROOT = Path(__file__).resolve().parent.parent
+DATA_FILE = ROOT / "data" / "Dyscalculia" / "dyscalculia_prepared.csv"
 
 
 print("==========================================")
