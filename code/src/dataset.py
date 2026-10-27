@@ -1,3 +1,4 @@
+from pathlib import Path
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
@@ -6,8 +7,9 @@ from torch.utils.data import DataLoader
 # DATASET PATHS
 # ==========================================
 
-TRAIN_DIR = "data/Gambo/Train"
-TEST_DIR = "data/Gambo/Test"
+ROOT = Path(__file__).resolve().parent.parent
+TRAIN_DIR = ROOT / "data" / "Gambo" / "Train"
+TEST_DIR = ROOT / "data" / "Gambo" / "Test"
 
 
 # ==========================================
