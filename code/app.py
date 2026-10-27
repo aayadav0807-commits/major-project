@@ -1305,6 +1305,14 @@ elif page == "✍️ Handwriting Screening":
                             * 100
                         )
 
+                        # Confidence is a review prompt, not a diagnostic probability.
+                        if confidence < MODEL_CONFIDENCE_MIN_PERCENT:
+                            st.warning(
+                                f"Handwriting scan review gate not met: confidence {confidence:.1f}% is below {MODEL_CONFIDENCE_MIN_PERCENT:.0f}%. Review/repeat if needed; this is not a diagnosis."
+                            )
+                        else:
+                            st.info(f"Handwriting demo review gate met (confidence at least {MODEL_CONFIDENCE_MIN_PERCENT:.0f}%). This is not a diagnosis.")
+
                         class_probabilities = {
                             classes[i]: (
                                 float(probabilities[i].item()) * 100
@@ -3873,6 +3881,11 @@ elif page == "🔢 Dyscalculia Screening":
                             "Dyscalculia-class model probability",
                             f"{dyscalculia_probability:.1f}%"
                         )
+
+                        if float(predicted_class_probability) < MODEL_CONFIDENCE_MIN_PERCENT:
+                            st.warning(f"Dyscalculia model confidence {float(predicted_class_probability):.1f}% is below the {MODEL_CONFIDENCE_MIN_PERCENT:.0f}% demo review gate. Request human review; do not treat as diagnosis.")
+                        else:
+                            st.info(f"Dyscalculia demo confidence gate met (at least {MODEL_CONFIDENCE_MIN_PERCENT:.0f}%). This experimental output is not a diagnosis.")
 
                         st.caption(
                             "Experimental model output only; "
