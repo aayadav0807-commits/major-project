@@ -13,7 +13,8 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 # 1. LOAD DATASET
 # ============================================================
 
-DATA_PATH = "data/Dyscalculia/dyscalculia_prepared.csv"
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "data" / "Dyscalculia" / "dyscalculia_prepared.csv"
 
 df = pd.read_csv(DATA_PATH)
 
