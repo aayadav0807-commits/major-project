@@ -1,7 +1,9 @@
+from pathlib import Path
 import pandas as pd
 import os
 
-DATA_DIR = "data/Dyscalculia"
+ROOT = Path(__file__).resolve().parent.parent
+DATA_DIR = ROOT / "data" / "Dyscalculia"
 
 COMPLETE_FILE = os.path.join(DATA_DIR, "Complete_Dataframe_def.xlsx")
 ENUMERATION_FILE = os.path.join(DATA_DIR, "Exact_enumeration_task.xlsx")
