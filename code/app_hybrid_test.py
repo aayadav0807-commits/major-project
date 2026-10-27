@@ -28,7 +28,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 from model import DyslexiaCNN
 from assessment_thresholds import (
     MODEL_CONFIDENCE_MIN_PERCENT, TASK_ACCURACY_TARGET_PERCENT,
-    READING_WORD_MATCH_TARGET_PERCENT, eye_tracking_quality,
+    READING_WORD_MATCH_TARGET_PERCENT, eye_tracking_quality, meets_minimum,
 )
 
 st.set_page_config(
@@ -2684,6 +2684,10 @@ elif page == "📖 Reading Assessment":
             f"{results['transcribed_words_per_minute']:.1f} words/min"
             if results.get("transcribed_words_per_minute") is not None else "Unavailable"
         )
+        if meets_minimum(results["exact_word_match_percent"], READING_WORD_MATCH_TARGET_PERCENT):
+            st.info(f"Reading recording review gate met (word-match target at least {READING_WORD_MATCH_TARGET_PERCENT:.0f}%). Speech recognition can make errors; this is not a diagnosis.")
+        else:
+            st.warning(f"Word-match result is below the demo review target of {READING_WORD_MATCH_TARGET_PERCENT:.0f}%. Check the transcript/audio and repeat if needed.")
 
         c4, c5, c6 = st.columns(3)
         c4.metric("Matched words", f"{results['matched_words']} / {results['reference_word_count']}")
@@ -2923,6 +2927,10 @@ elif page == "🔢 Dyscalculia Screening":
                 "Accuracy",
                 f"{accuracy * 100:.1f}%"
             )
+            if meets_minimum(accuracy * 100, TASK_ACCURACY_TARGET_PERCENT):
+                st.caption(f"Demo task target met (at least {TASK_ACCURACY_TARGET_PERCENT:.0f}% accuracy); not a diagnostic cut-off.")
+            else:
+                st.caption(f"Below demo task target ({TASK_ACCURACY_TARGET_PERCENT:.0f}%); interpret in context and repeat if needed.")
 
         with c3:
             st.metric(
@@ -3202,6 +3210,10 @@ elif page == "🔢 Dyscalculia Screening":
                 "Accuracy",
                 f"{accuracy * 100:.1f}%"
             )
+            if meets_minimum(accuracy * 100, TASK_ACCURACY_TARGET_PERCENT):
+                st.caption(f"Demo task target met (at least {TASK_ACCURACY_TARGET_PERCENT:.0f}% accuracy); not a diagnostic cut-off.")
+            else:
+                st.caption(f"Below demo task target ({TASK_ACCURACY_TARGET_PERCENT:.0f}%); interpret in context and repeat if needed.")
 
         with c3:
             st.metric(
@@ -3526,6 +3538,10 @@ elif page == "🔢 Dyscalculia Screening":
                 "Accuracy",
                 f"{accuracy * 100:.1f}%"
             )
+            if meets_minimum(accuracy * 100, TASK_ACCURACY_TARGET_PERCENT):
+                st.caption(f"Demo task target met (at least {TASK_ACCURACY_TARGET_PERCENT:.0f}% accuracy); not a diagnostic cut-off.")
+            else:
+                st.caption(f"Below demo task target ({TASK_ACCURACY_TARGET_PERCENT:.0f}%); interpret in context and repeat if needed.")
 
         with c3:
             st.metric(
@@ -3818,6 +3834,10 @@ elif page == "🔢 Dyscalculia Screening":
                 "Accuracy",
                 f"{accuracy * 100:.1f}%"
             )
+            if meets_minimum(accuracy * 100, TASK_ACCURACY_TARGET_PERCENT):
+                st.caption(f"Demo task target met (at least {TASK_ACCURACY_TARGET_PERCENT:.0f}% accuracy); not a diagnostic cut-off.")
+            else:
+                st.caption(f"Below demo task target ({TASK_ACCURACY_TARGET_PERCENT:.0f}%); interpret in context and repeat if needed.")
 
         with c3:
 
@@ -4644,6 +4664,17 @@ elif page == "🔢 Dyscalculia Screening":
                             "Dyscalculia-class model probability",
                             f"{dyscalculia_probability:.1f}%"
                         )
+                        
+                        if float(predicted_class_probability) < MODEL_CONFIDENCE_MIN_PERCENT:
+                            st.warning(
+                                f"Low model confidence ({float(predicted_class_probability):.1f}%). "
+                                "Flag for human review; do not treat this as a diagnosis."
+                            )
+                        else:
+                            st.info(
+                                f"Demo confidence gate met (at least {MODEL_CONFIDENCE_MIN_PERCENT:.0f}%). "
+                                "This remains an experimental model output."
+                            )
 
                         if float(st.session_state["dyscalculia_confidence"]) < MODEL_CONFIDENCE_MIN_PERCENT:
                             st.warning(
@@ -5643,9 +5674,9 @@ elif page == "👁️ Eye Tracking Assessment":
                         )
 
                         mean_error = float(np.mean(tracking_errors))
-                    eye_quality_ok, eye_quality_issues = eye_tracking_quality(
-                        detection_rate, len(tracking_errors), mean_error
-                    )
+                        eye_quality_ok, eye_quality_issues = eye_tracking_quality(
+                            detection_rate, len(tracking_errors), mean_error
+                        )
                         median_error = float(np.median(tracking_errors))
 
                         summary = {
@@ -5667,6 +5698,8 @@ elif page == "👁️ Eye Tracking Assessment":
                             "Median estimated target error "
                             "(percentage points)": round(median_error, 2),
                             "Reading task performed": False,
+                            "Recording quality gate passed": eye_quality_ok,
+                            "Recording quality issues": eye_quality_issues,
                             "Interpretation": (
                                 "Experimental gaze-following measurements "
                                 "only. Not a validated dyslexia screening "
