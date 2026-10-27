@@ -1,0 +1,1 @@
+print("Dyslexia Detection Project Started Successfully!")
