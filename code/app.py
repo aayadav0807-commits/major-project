@@ -26,7 +26,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 from model import DyslexiaCNN
 from assessment_thresholds import (
     MODEL_CONFIDENCE_MIN_PERCENT, TASK_ACCURACY_TARGET_PERCENT,
-    READING_WORD_MATCH_TARGET_PERCENT, eye_tracking_quality,
+    READING_WORD_MATCH_TARGET_PERCENT, eye_tracking_quality, meets_minimum,
 )
 
 st.set_page_config(
