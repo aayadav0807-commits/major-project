@@ -2,6 +2,9 @@ import torch
 from PIL import Image
 from torchvision import transforms
 
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from model import DyslexiaCNN
 
 
