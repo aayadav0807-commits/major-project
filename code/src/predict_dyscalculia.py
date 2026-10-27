@@ -1,8 +1,10 @@
+from pathlib import Path
 import pandas as pd
 import joblib
 
-MODEL_FILE = "models/dyscalculia_model.pkl"
-DATA_FILE = "data/Dyscalculia/dyscalculia_prepared.csv"
+ROOT = Path(__file__).resolve().parent.parent
+MODEL_FILE = ROOT / "models" / "dyscalculia_model.pkl"
+DATA_FILE = ROOT / "data" / "Dyscalculia" / "dyscalculia_prepared.csv"
 
 print("==========================================")
 print("DYSCALCULIA AI PREDICTION TEST")
