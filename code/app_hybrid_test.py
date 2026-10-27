@@ -26,6 +26,10 @@ from datetime import datetime
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 from model import DyslexiaCNN
+from assessment_thresholds import (
+    MODEL_CONFIDENCE_MIN_PERCENT, TASK_ACCURACY_TARGET_PERCENT,
+    READING_WORD_MATCH_TARGET_PERCENT, eye_tracking_quality,
+)
 
 st.set_page_config(
     page_title="NeuroScreen AI",
@@ -50,7 +54,7 @@ st.markdown("""
         background:
             radial-gradient(circle at 10% 0%, rgba(31, 115, 255, 0.08), transparent 28%),
             radial-gradient(circle at 100% 10%, rgba(0, 190, 160, 0.08), transparent 25%),
-            #f6f8fc;
+            var(--background-color, #f6f8fc);
     }
 
     section[data-testid="stSidebar"] {
@@ -210,6 +214,73 @@ st.markdown("""
     .stProgress > div > div > div > div {
         border-radius: 999px;
     }
+
+    /* Streamlit light/dark theme compatibility: prefer theme variables. */
+    .stApp { color: var(--text-color, inherit) !important; }
+    .stApp [data-testid="stMarkdownContainer"],
+    .stApp [data-testid="stWidgetLabel"],
+    .stApp label, .stApp p, .stApp li,
+    .stApp [data-testid="stCaptionContainer"] {
+        color: var(--text-color, inherit);
+    }
+    .stApp .card, .stApp .metric-card,
+    .stApp div[data-testid="stMetric"],
+    .stApp div[data-testid="stFileUploader"] {
+        background: var(--secondary-background-color, #ffffff);
+        color: var(--text-color, #172033);
+        border-color: var(--border-color, #d9e0ea);
+    }
+    .stApp .card-title, .stApp .metric-value,
+    .stApp .section-title, .stApp h1, .stApp h2, .stApp h3,
+    .stApp h4, .stApp h5, .stApp h6 {
+        color: var(--text-color, #172033);
+    }
+    .stApp .card-text, .stApp .metric-label, .stApp .footer-note {
+        color: var(--text-color, #526174);
+        opacity: .88;
+    }
+    .stApp input, .stApp textarea, .stApp select,
+    .stApp [data-baseweb="select"] > div {
+        color: var(--text-color, inherit);
+    }
+    html[data-theme="dark"] .stApp,
+    body[data-theme="dark"] .stApp {
+        background:
+            radial-gradient(circle at 10% 0%, rgba(31,115,255,.10), transparent 28%),
+            radial-gradient(circle at 100% 10%, rgba(0,190,160,.08), transparent 25%),
+            var(--background-color, #0e1117) !important;
+        color: var(--text-color, #fafafa) !important;
+    }
+    html[data-theme="dark"] .stApp .card,
+    html[data-theme="dark"] .stApp .metric-card,
+    html[data-theme="dark"] .stApp div[data-testid="stMetric"],
+    html[data-theme="dark"] .stApp div[data-testid="stFileUploader"] {
+        background: var(--secondary-background-color, #1b2029) !important;
+        color: var(--text-color, #fafafa) !important;
+        border-color: var(--border-color, #3a414d) !important;
+    }
+    html[data-theme="dark"] .stApp .section-title,
+    html[data-theme="dark"] .stApp .card-title,
+    html[data-theme="dark"] .stApp .metric-value,
+    html[data-theme="dark"] .stApp h1,
+    html[data-theme="dark"] .stApp h2,
+    html[data-theme="dark"] .stApp h3,
+    html[data-theme="dark"] .stApp h4,
+    html[data-theme="dark"] .stApp h5,
+    html[data-theme="dark"] .stApp h6,
+    html[data-theme="dark"] .stApp p,
+    html[data-theme="dark"] .stApp li,
+    html[data-theme="dark"] .stApp label,
+    html[data-theme="dark"] .stApp [data-testid="stMarkdownContainer"],
+    html[data-theme="dark"] .stApp [data-testid="stCaptionContainer"] {
+        color: var(--text-color, #fafafa) !important;
+    }
+    html[data-theme="dark"] .stApp .card-text,
+    html[data-theme="dark"] .stApp .metric-label,
+    html[data-theme="dark"] .stApp .footer-note {
+        color: var(--text-color, #d1d5db) !important;
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -708,8 +779,8 @@ device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
 )
 
-HANDWRITING_MODEL_PATH = "models/dyslexia_cnn.pth"
-DYSCALCULIA_MODEL_PATH = "models/dyscalculia_app_model.pkl"
+HANDWRITING_MODEL_PATH = Path(__file__).resolve().parent / "models" / "dyslexia_cnn.pth"
+DYSCALCULIA_MODEL_PATH = Path(__file__).resolve().parent / "models" / "dyscalculia_app_model.pkl"
 
 handwriting_transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
@@ -1482,6 +1553,18 @@ elif page == "✍️ Handwriting Screening":
                             float(probabilities[predicted_class].item())
                             * 100
                         )
+
+                        if confidence < MODEL_CONFIDENCE_MIN_PERCENT:
+                            st.warning(
+                                f"Low model confidence ({confidence:.1f}%). "
+                                "Treat this scan as uncertain and review/repeat it; "
+                                "this is not a diagnostic threshold."
+                            )
+                        else:
+                            st.info(
+                                f"Demo quality gate met: model confidence ≥ "
+                                f"{MODEL_CONFIDENCE_MIN_PERCENT:.0f}%. This is not a diagnosis."
+                            )
 
                         class_probabilities = {
                             classes[i]: (
@@ -4562,6 +4645,17 @@ elif page == "🔢 Dyscalculia Screening":
                             f"{dyscalculia_probability:.1f}%"
                         )
 
+                        if float(st.session_state["dyscalculia_confidence"]) < MODEL_CONFIDENCE_MIN_PERCENT:
+                            st.warning(
+                                f"Low prediction confidence ({float(st.session_state['dyscalculia_confidence']):.1f}%). "
+                                "Flag for human review; do not use as a diagnosis."
+                            )
+                        else:
+                            st.info(
+                                f"Demo confidence gate met (≥ {MODEL_CONFIDENCE_MIN_PERCENT:.0f}%). "
+                                "The model output remains experimental and is not a diagnosis."
+                            )
+
                         st.caption(
                             "Experimental model output only; "
                             "not a clinical diagnosis."
@@ -5549,6 +5643,9 @@ elif page == "👁️ Eye Tracking Assessment":
                         )
 
                         mean_error = float(np.mean(tracking_errors))
+                    eye_quality_ok, eye_quality_issues = eye_tracking_quality(
+                        detection_rate, len(tracking_errors), mean_error
+                    )
                         median_error = float(np.median(tracking_errors))
 
                         summary = {
