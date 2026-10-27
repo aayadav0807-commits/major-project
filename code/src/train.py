@@ -34,7 +34,7 @@ print("==========================================")
 # CREATE MODEL DIRECTORY
 # ==========================================
 
-os.makedirs(MODEL_DIR, exist_ok=True)
+MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ==========================================
