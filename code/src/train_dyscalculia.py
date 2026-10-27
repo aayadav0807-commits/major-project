@@ -1,3 +1,4 @@
+from pathlib import Path
 import pandas as pd
 import numpy as np
 
@@ -80,7 +81,8 @@ print("Training completed successfully!")
 # Save model
 import joblib
 
-MODEL_FILE = "models/dyscalculia_model.pkl"
+MODEL_FILE = ROOT / "models" / "dyscalculia_model.pkl"
+MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 joblib.dump(model, MODEL_FILE)
 
