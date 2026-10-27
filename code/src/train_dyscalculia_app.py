@@ -1,3 +1,4 @@
+from pathlib import Path
 import pandas as pd
 import joblib
 
@@ -184,7 +185,8 @@ print(
 # 9. SAVE MODEL
 # ============================================================
 
-MODEL_PATH = "models/dyscalculia_app_model.pkl"
+MODEL_PATH = ROOT / "models" / "dyscalculia_app_model.pkl"
+MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 joblib.dump(
     model,
