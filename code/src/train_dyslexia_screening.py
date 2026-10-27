@@ -4,8 +4,10 @@ import random
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, Subset
 from torchvision import datasets, transforms
+from sklearn.model_selection import GroupShuffleSplit
+import pandas as pd
 from PIL import Image, ImageOps
 
 # --------------------------------------------------
@@ -78,17 +80,45 @@ if len(dataset) == 0 or set(dataset.classes) != {"No", "Yes"}:
 
 # --------------------------------------------------
 # TRAIN / TEST SPLIT
-# Image-level split; participant-level separation
-# cannot be guaranteed without participant IDs.
+# Preferred: participant_manifest.csv with columns
+# relative_path,participant_id; paths are relative to DATA_DIR.
 # --------------------------------------------------
-train_size = int(0.8 * len(dataset))
-test_size = len(dataset) - train_size
-
-train_data, test_data = random_split(
-    dataset,
-    [train_size, test_size],
-    generator=torch.Generator().manual_seed(SEED)
-)
+MANIFEST_PATH = DATA_DIR / "participant_manifest.csv"
+if MANIFEST_PATH.is_file():
+    manifest = pd.read_csv(MANIFEST_PATH)
+    if not {"relative_path", "participant_id"}.issubset(manifest.columns):
+        raise ValueError("participant_manifest.csv needs relative_path,participant_id columns.")
+    manifest["relative_path"] = manifest["relative_path"].astype(str).str.replace("\\\\", "/", regex=False)
+    participant_by_path = dict(zip(manifest["relative_path"], manifest["participant_id"]))
+    sample_relpaths = [
+        Path(sample_path).resolve().relative_to(DATA_DIR.resolve()).as_posix()
+        for sample_path, _ in dataset.samples
+    ]
+    missing = [relpath for relpath in sample_relpaths if relpath not in participant_by_path]
+    if missing:
+        raise ValueError(f"Manifest is missing {len(missing)} image(s), e.g. {missing[0]}")
+    groups = [participant_by_path[relpath] for relpath in sample_relpaths]
+    if len(set(groups)) < 2:
+        raise ValueError("At least two different participant IDs are required.")
+    splitter = GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=SEED)
+    train_indices, test_indices = next(splitter.split(range(len(dataset)), dataset.targets, groups))
+    if set(groups[i] for i in train_indices) & set(groups[i] for i in test_indices):
+        raise RuntimeError("Participant leakage detected in train/test split.")
+    train_data = Subset(dataset, train_indices.tolist())
+    test_data = Subset(dataset, test_indices.tolist())
+    PARTICIPANT_SPLIT = True
+    print("Using participant-level split:", MANIFEST_PATH)
+else:
+    # Fallback keeps demo training runnable but does not establish independent-child accuracy.
+    train_size = int(0.8 * len(dataset))
+    test_size = len(dataset) - train_size
+    train_data, test_data = random_split(
+        dataset, [train_size, test_size],
+        generator=torch.Generator().manual_seed(SEED)
+    )
+    PARTICIPANT_SPLIT = False
+    print("WARNING: participant_manifest.csv not found.")
+    print("Image-level split only; test accuracy may be inflated.")
 
 train_loader = DataLoader(
     train_data, batch_size=16, shuffle=True, num_workers=0
@@ -191,8 +221,11 @@ with torch.no_grad():
 
 test_accuracy = 100 * correct / total
 
-print(f"\nPreliminary test accuracy: {test_accuracy:.2f}%")
-print("Warning: image-level split; participant-level leakage is possible.")
+print(f"\nTest accuracy: {test_accuracy:.2f}%")
+if not PARTICIPANT_SPLIT:
+    print("WARNING: image-level metric only; participant leakage is possible.")
+else:
+    print("Participant-level split used; external validation is still required.")
 print("This result does not establish clinical diagnostic accuracy.")
 
 # --------------------------------------------------
@@ -216,9 +249,10 @@ torch.save({
     "seed": SEED,
     "epochs": EPOCHS,
     "test_accuracy": test_accuracy,
+    "participant_level_split": PARTICIPANT_SPLIT,
     "evaluation_note": (
-        "Preliminary image-level split. Participant IDs unavailable; "
-        "not validated for clinical diagnosis."
+        "Participant-level split" if PARTICIPANT_SPLIT else
+        "Image-level split only; possible participant leakage. Do not report as independent-child accuracy."
     )
 }, MODEL_PATH)
 
