@@ -5729,6 +5729,11 @@ elif page == "👁️ Eye Tracking Assessment":
                                 details=json.dumps(summary)
                             )
 
+                            if eye_quality_ok:
+                                st.success("Eye-tracking recording quality gate met. This is not a disability score.")
+                            else:
+                                st.warning("Eye-tracking recording quality gate not met: " + " ".join(eye_quality_issues))
+
                             st.success(
                                 f"Eye-tracking results saved for "
                                 f"child {child_id}."
